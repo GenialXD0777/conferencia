@@ -766,6 +766,10 @@
                         gfConfig = { ...gfConfig, ...parsed };
                     }
                 }
+                // Asegurar siempre el Google Sheets oficial si quedó vacío en caché local
+                if (!gfConfig.sheetsUrl) {
+                    gfConfig.sheetsUrl = DEFAULT_GFORMS_CONFIG.sheetsUrl;
+                }
             } catch (e) {
                 console.error('Error leyendo config de Google Forms:', e);
             }
