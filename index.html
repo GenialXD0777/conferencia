@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seminario Internacional de Ciencia, Tecnología e Innovación - ITSNCG</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js para la Gráfica de Pastel -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS (XLSX) para Exportar a Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <!-- jsPDF & AutoTable para Generar PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Notificación Toast Flotante -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Navbar Institucional -->
+    <header class="bg-gradient-to-r from-[#1B396A] via-[#234885] to-[#152c52] text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/10 p-2.5 rounded-xl backdrop-blur-sm border border-white/20">
+                        <i data-lucide="atom" class="w-8 h-8 text-sky-300"></i>
+                    </div>
+                    <div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-xs font-bold uppercase tracking-wider bg-sky-500/20 text-sky-200 px-2.5 py-0.5 rounded-full border border-sky-400/30">
+                                TecNM • ITSNCG
+                            </span>
+                            <span class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Guardado Local Activo
+                            </span>
+                            <span id="gforms-badge" class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-200 border border-amber-400/30 flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Google Forms: Opcional
+                            </span>
+                        </div>
+                        <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight mt-1">
+                            Seminario Internacional de Ciencia, Tecnología e Innovación
+                        </h1>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 self-end md:self-auto">
+                    <!-- Reloj en tiempo real -->
+                    <div class="bg-slate-900/40 border border-white/10 px-4 py-2 rounded-xl text-right hidden sm:block">
+                        <div id="live-date" class="text-xs text-sky-200 font-medium capitalize">Cargando fecha...</div>
+                        <div id="live-clock" class="text-lg font-bold font-mono tracking-wider text-white">00:00:00</div>
+                    </div>
+                    
+                    <!-- Botón Acceso Organizador (Bloqueado para alumnos) -->
+                    <button id="btn-admin-toggle" onclick="toggleAdminAccess()" class="flex items-center gap-2 bg-white/10 hover:bg-white/20 active:bg-white/25 text-white px-4 py-2.5 rounded-xl font-medium text-sm transition-all border border-white/20 shadow-sm cursor-pointer">
+                        <i id="admin-lock-icon" data-lucide="lock" class="w-4 h-4 text-amber-300"></i>
+                        <span id="admin-btn-text">Organizador</span>
+                    </button>
+
+                    <!-- Botón Configurar Google Forms (Solo visible para Organizador) -->
+                    <button id="btn-gforms-config" onclick="openConfigModal()" class="hidden items-center gap-2 bg-sky-500/20 hover:bg-sky-500/30 active:bg-sky-500/40 text-white px-4 py-2.5 rounded-xl font-medium text-sm transition-all border border-sky-400/30 shadow-sm cursor-pointer">
+                        <i data-lucide="settings" class="w-4 h-4"></i>
+                        <span>Google Forms</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Tarjetas de Resumen KPI (Ocultas para estudiantes; solo visibles para Organizador) -->
+        <div id="admin-kpi-section" class="hidden grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 animate-fade-in">
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-500">Total Asistentes</p>
+                    <p id="kpi-total" class="text-3xl font-extrabold text-[#1B396A] mt-1">0</p>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-blue-50 text-[#1B396A] flex items-center justify-center">
+                    <i data-lucide="users" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-500">Hombres Registrados</p>
+                    <div class="flex items-baseline gap-2 mt-1">
+                        <p id="kpi-hombres" class="text-3xl font-extrabold text-sky-600">0</p>
+                        <span id="kpi-hombres-pct" class="text-xs font-semibold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full">0%</span>
+                    </div>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center">
+                    <i data-lucide="user-check" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-500">Mujeres Registradas</p>
+                    <div class="flex items-baseline gap-2 mt-1">
+                        <p id="kpi-mujeres" class="text-3xl font-extrabold text-rose-500">0</p>
+                        <span id="kpi-mujeres-pct" class="text-xs font-semibold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full">0%</span>
+                    </div>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center">
+                    <i data-lucide="user-plus" class="w-6 h-6"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid Principal: Formulario (centrado para alumnos) + Gráfica (solo Organizador) -->
+        <div id="main-workspace-grid" class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
+            
+            <!-- Columna Izquierda: Formulario de Registro -->
+            <div id="form-card-container" class="lg:col-span-8 lg:col-start-3 bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col transition-all">
+                <div class="bg-slate-50/80 px-6 py-4 border-b border-slate-200/80 flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-[#1B396A] text-white flex items-center justify-center">
+                            <i data-lucide="clipboard-edit" class="w-4 h-4"></i>
+                        </div>
+                        <h2 class="text-lg font-bold text-slate-800">Registro de Asistencia Estudiantil</h2>
+                    </div>
+                    <span class="text-xs font-medium text-slate-400">Campos obligatorios *</span>
+                </div>
+
+                <form id="registro-form" class="p-6 space-y-5 flex-grow flex flex-col justify-between">
+                    <div class="space-y-4">
+                        <!-- Número de Control y Semestre en Grid -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="numControl" class="block text-sm font-semibold text-slate-700 mb-1.5">
+                                    Número de Control *
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                        <i data-lucide="hash" class="w-4 h-4"></i>
+                                    </div>
+                                    <input type="text" id="numControl" required placeholder="Ej. 21CG0145" maxlength="12"
+                                        class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 font-medium uppercase focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1B396A] focus:border-transparent transition-all">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="semestre" class="block text-sm font-semibold text-slate-700 mb-1.5">
+                                    Semestre *
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                        <i data-lucide="graduation-cap" class="w-4 h-4"></i>
+                                    </div>
+                                    <select id="semestre" required
+                                        class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1B396A] focus:border-transparent transition-all">
+                                        <option value="" disabled selected>Selecciona semestre...</option>
+                                        <option value="1°">1° Semestre</option>
+                                        <option value="2°">2° Semestre</option>
+                                        <option value="3°">3° Semestre</option>
+                                        <option value="4°">4° Semestre</option>
+                                        <option value="5°">5° Semestre</option>
+                                        <option value="6°">6° Semestre</option>
+                                        <option value="7°">7° Semestre</option>
+                                        <option value="8°">8° Semestre</option>
+                                        <option value="9°">9° Semestre</option>
+                                        <option value="10°+">10°+ / Egresado</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Nombres y Apellidos en Grid -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="nombres" class="block text-sm font-semibold text-slate-700 mb-1.5">
+                                    Nombre(s) *
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                        <i data-lucide="user" class="w-4 h-4"></i>
+                                    </div>
+                                    <input type="text" id="nombres" required placeholder="Ej. Juan Carlos"
+                                        class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1B396A] focus:border-transparent transition-all">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="apellidos" class="block text-sm font-semibold text-slate-700 mb-1.5">
+                                    Apellidos *
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                        <i data-lucide="users" class="w-4 h-4"></i>
+                                    </div>
+                                    <input type="text" id="apellidos" required placeholder="Ej. Pérez García"
+                                        class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1B396A] focus:border-transparent transition-all">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Conferencia -->
+                        <div>
+                            <label for="actividad" class="block text-sm font-semibold text-slate-700 mb-1.5">
+                                Conferencia *
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                    <i data-lucide="presentation" class="w-4 h-4"></i>
+                                </div>
+                                <select id="actividad" required
+                                    class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1B396A] focus:border-transparent transition-all">
+                                    <option value="Caracterización Metalúrgica y microestructural de camisas de protección construidas en Acero AISI 304." selected>
+                                        Caracterización Metalúrgica y microestructural de camisas de protección construidas en Acero AISI 304.
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Selección de Género -->
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">
+                                Género *
+                            </label>
+                            <div class="grid grid-cols-2 gap-4">
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="genero" value="Hombre" class="peer sr-only" required>
+                                    <div class="p-3 rounded-xl border-2 border-slate-200 bg-slate-50 hover:bg-slate-100 peer-checked:border-sky-600 peer-checked:bg-sky-50/70 transition-all flex items-center justify-center gap-3">
+                                        <div class="w-7 h-7 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center">
+                                            <i data-lucide="user" class="w-4 h-4"></i>
+                                        </div>
+                                        <span class="font-bold text-slate-700 peer-checked:text-sky-800">Hombre</span>
+                                    </div>
+                                </label>
+
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="genero" value="Mujer" class="peer sr-only" required>
+                                    <div class="p-3 rounded-xl border-2 border-slate-200 bg-slate-50 hover:bg-slate-100 peer-checked:border-rose-500 peer-checked:bg-rose-50/70 transition-all flex items-center justify-center gap-3">
+                                        <div class="w-7 h-7 rounded-full bg-rose-100 text-rose-500 flex items-center justify-center">
+                                            <i data-lucide="user" class="w-4 h-4"></i>
+                                        </div>
+                                        <span class="font-bold text-slate-700 peer-checked:text-rose-800">Mujer</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Marca Automática de Fecha y Hora -->
+                        <div class="bg-blue-50/60 border border-blue-100 rounded-xl p-3 flex items-center justify-between">
+                            <div class="flex items-center gap-2 text-sm text-[#1B396A]">
+                                <i data-lucide="clock" class="w-4 h-4 text-sky-600"></i>
+                                <span class="font-medium">Marca de tiempo automática:</span>
+                            </div>
+                            <span id="form-timestamp-preview" class="text-sm font-mono font-bold text-[#1B396A] bg-white px-3 py-1 rounded-lg border border-blue-200/60 shadow-xs">
+                                --/--/---- --:--:--
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Botón Submit -->
+                    <div class="pt-4">
+                        <button type="submit" id="btn-submit"
+                            class="w-full bg-[#1B396A] hover:bg-[#142b52] active:scale-[0.99] text-white font-bold py-3.5 px-6 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer">
+                            <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                            <span>Registrar Asistencia</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Columna Derecha: Gráfica de Pastel (Oculta para estudiantes; solo visible para Organizador) -->
+            <div id="admin-chart-section" class="hidden lg:col-span-5 bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden flex-col animate-fade-in">
+                <div class="bg-slate-50/80 px-6 py-4 border-b border-slate-200/80 flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-sky-600 text-white flex items-center justify-center">
+                            <i data-lucide="pie-chart" class="w-4 h-4"></i>
+                        </div>
+                        <h2 class="text-lg font-bold text-slate-800">Porcentaje por Género</h2>
+                    </div>
+                    <span class="text-xs font-semibold text-sky-700 bg-sky-100 px-2.5 py-1 rounded-full">En vivo</span>
+                </div>
+
+                <div class="p-6 flex-grow flex flex-col items-center justify-center relative">
+                    <div class="w-full max-w-[260px] aspect-square relative">
+                        <canvas id="genderChart"></canvas>
+                        <div id="empty-chart-overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-white/90 rounded-full text-center p-4">
+                            <i data-lucide="bar-chart-2" class="w-8 h-8 text-slate-300 mb-1"></i>
+                            <p class="text-xs font-medium text-slate-400">Sin registros aún.<br>Registra un alumno para ver la estadística.</p>
+                        </div>
+                    </div>
+
+                    <!-- Leyenda detallada inferior -->
+                    <div class="w-full grid grid-cols-2 gap-3 mt-6 pt-4 border-t border-slate-100">
+                        <div class="flex items-center justify-between bg-sky-50/70 px-3.5 py-2.5 rounded-xl border border-sky-100">
+                            <div class="flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full bg-sky-500"></span>
+                                <span class="text-xs font-semibold text-slate-700">Hombres</span>
+                            </div>
+                            <span id="legend-hombres" class="text-sm font-extrabold text-sky-700">0%</span>
+                        </div>
+                        <div class="flex items-center justify-between bg-rose-50/70 px-3.5 py-2.5 rounded-xl border border-rose-100">
+                            <div class="flex items-center gap-2">
+                                <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                                <span class="text-xs font-semibold text-slate-700">Mujeres</span>
+                            </div>
+                            <span id="legend-mujeres" class="text-sm font-extrabold text-rose-600">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección Inferior: Tabla de Registros y Botones de Exportación (Oculta para estudiantes) -->
+        <div id="admin-bitacora-section" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden animate-fade-in">
+            <div class="bg-slate-50/80 px-6 py-4 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center">
+                        <i data-lucide="table" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">Bitácora de Asistencia (Solo Organizador)</h2>
+                        <p id="bitacora-subtitle" class="text-xs text-slate-500">Seminario Internacional de Ciencia, Tecnología e Innovación</p>
+                    </div>
+                </div>
+
+                <!-- Botones de Acción y Exportación -->
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <!-- Botón Actualizar desde Google Sheets -->
+                    <button id="btn-sync-sheets" onclick="syncFromGoogleSheets(true)" title="Jalar respuestas recientes de Google Sheets"
+                        class="flex items-center gap-1.5 bg-[#1B396A] hover:bg-[#142b52] active:scale-95 text-white text-sm font-semibold px-3.5 py-2 rounded-xl shadow-xs transition-all cursor-pointer">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        <span>Actualizar Datos</span>
+                    </button>
+
+                    <!-- Buscador rápido -->
+                    <div class="relative">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                        <input type="text" id="search-input" placeholder="Buscar alumno o control..." onkeyup="renderTable()"
+                            class="pl-9 pr-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1B396A] w-full sm:w-52">
+                    </div>
+
+                    <!-- Exportar a Excel -->
+                    <button onclick="exportToExcel()"
+                        class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-xs transition-all cursor-pointer">
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                        <span>Excel (.xlsx)</span>
+                    </button>
+
+                    <!-- Exportar a PDF -->
+                    <button onclick="exportToPDF()"
+                        class="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-xs transition-all cursor-pointer">
+                        <i data-lucide="file-text" class="w-4 h-4"></i>
+                        <span>Generar PDF</span>
+                    </button>
+
+                    <!-- Limpiar Registros -->
+                    <button onclick="openClearModal()" title="Limpiar lista"
+                        class="flex items-center justify-center bg-slate-200 hover:bg-slate-300 text-slate-700 p-2 rounded-xl transition-all cursor-pointer">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabla Responsiva -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
+                            <th class="py-3.5 px-4 font-bold">#</th>
+                            <th class="py-3.5 px-4 font-bold">No. Control</th>
+                            <th class="py-3.5 px-4 font-bold">Nombre Completo</th>
+                            <th class="py-3.5 px-4 font-bold">Semestre</th>
+                            <th class="py-3.5 px-4 font-bold">Conferencia</th>
+                            <th class="py-3.5 px-4 font-bold">Género</th>
+                            <th class="py-3.5 px-4 font-bold">Fecha y Hora</th>
+                            <th class="py-3.5 px-4 font-bold text-center">Estado</th>
+                            <th class="py-3.5 px-4 font-bold text-right">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="registros-tbody" class="divide-y divide-slate-100 text-sm">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Estado vacío de la tabla -->
+            <div id="empty-table-state" class="py-12 px-4 text-center">
+                <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i data-lucide="inbox" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-base font-bold text-slate-700">No hay estudiantes registrados todavía</h3>
+                <p class="text-sm text-slate-500 max-w-md mx-auto mt-1">
+                    Completa el formulario superior para comenzar a registrar la asistencia al Seminario Internacional de Ciencia, Tecnología e Innovación.
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer Institucional -->
+    <footer class="bg-white border-t border-slate-200 mt-12 py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+            <p class="font-semibold text-slate-700">
+                Instituto Tecnológico Superior de Nuevo Casas Grandes • TecNM
+            </p>
+            <p>Sistema de Control de Asistencia • Seminario Internacional de Ciencia, Tecnología e Innovación</p>
+        </div>
+    </footer>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL DE ACCESO DE ORGANIZADOR (PIN DE SEGURIDAD)                     -->
+    <!-- ===================================================================== -->
+    <div id="admin-pin-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 animate-fade-in">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-10 h-10 rounded-xl bg-[#1B396A]/10 text-[#1B396A] flex items-center justify-center">
+                        <i data-lucide="shield-check" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800">Acceso Organizador</h3>
+                        <p class="text-xs text-slate-500">Ingresa el PIN para ver bitácora y exportar</p>
+                    </div>
+                </div>
+                <button onclick="closePinModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="pin-form" class="space-y-4">
+                <div>
+                    <input type="password" id="admin-pin-input" required placeholder="Ingresa el PIN de acceso..."
+                        class="w-full px-4 py-3 text-center font-mono text-lg tracking-widest bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1B396A]">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <button type="button" onclick="closePinModal()" class="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl cursor-pointer">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="py-2.5 px-4 bg-[#1B396A] hover:bg-[#142b52] text-white font-bold text-sm rounded-xl cursor-pointer">
+                        Desbloquear
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL DE CONFIGURACIÓN DE GOOGLE FORMS                                -->
+    <!-- ===================================================================== -->
+    <div id="config-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-fade-in">
+            <div class="bg-[#1B396A] text-white px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <i data-lucide="link" class="w-5 h-5 text-sky-300"></i>
+                    <h3 class="font-bold text-lg">Vincular con Google Forms</h3>
+                </div>
+                <button onclick="closeConfigModal()" class="text-white/70 hover:text-white cursor-pointer">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+                <div class="bg-sky-50 border border-sky-200 rounded-xl p-3.5 text-xs text-sky-900 space-y-1.5">
+                    <p class="font-bold flex items-center gap-1.5">
+                        <i data-lucide="info" class="w-4 h-4 text-sky-600"></i>
+                        ¿Cómo conectar tu Google Form?
+                    </p>
+                    <ol class="list-decimal list-inside space-y-1 text-sky-800">
+                        <li>Abre tu formulario en Google Forms y haz clic en los 3 puntos (⋮) &rarr; <strong>Obtener enlace prellenado</strong>.</li>
+                        <li>Llena datos de prueba en cada pregunta (en este orden: Control, Nombres, Apellidos, Género, Semestre, Conferencia, Fecha/Hora) y haz clic en <strong>Obtener enlace</strong> &rarr; Copiar.</li>
+                        <li>Pega ese enlace abajo y presiona <strong>Extraer IDs</strong>.</li>
+                    </ol>
+                </div>
+
+                <!-- Extractor rápido desde enlace prellenado -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                        Pegar Enlace Prellenado (Autocompletar)
+                    </label>
+                    <div class="flex gap-2">
+                        <input type="text" id="prefilled-url-input" placeholder="https://docs.google.com/forms/d/e/.../viewform?usp=pp_url&entry.123=..."
+                            class="flex-grow px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1B396A]">
+                        <button type="button" onclick="parsePrefilledUrl()"
+                            class="bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all cursor-pointer shrink-0">
+                            Extraer IDs
+                        </button>
+                    </div>
+                </div>
+
+                <hr class="border-slate-200">
+
+                <!-- Campos Manuales -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">URL de envío (formResponse)</label>
+                    <input type="text" id="gf-action-url" placeholder="https://docs.google.com/forms/d/e/TU_ID/formResponse"
+                        class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1B396A]">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">ID No. Control</label>
+                        <input type="text" id="gf-entry-control" placeholder="entry.123456789"
+                            class="w-full px-3 py-2 text-xs font-mono bg-slate-50 border border-slate-300 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">ID Nombres</label>
+                        <input type="text" id="gf-entry-nombres" placeholder="entry.987654321"
+                            class="w-full px-3 py-2 text-xs font-mono bg-slate-50 border border-slate-300 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">ID Apellidos</label>
+                        <input type="text" id="gf-entry-apellidos" placeholder="entry.456789123"
+                            class="w-full px-3 py-2 text-xs font-mono bg-slate-50 border border-slate-300 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">ID Género</label>
+                        <input type="text" id="gf-entry-genero" placeholder="entry.321654987"
+                            class="w-full px-3 py-2 text-xs font-mono bg-slate-50 border border-slate-300 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">ID Semestre</label>
+                        <input type="text" id="gf-entry-semestre" placeholder="entry.555666777"
+                            class="w-full px-3 py-2 text-xs font-mono bg-slate-50 border border-slate-300 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">ID Conferencia</label>
+                        <input type="text" id="gf-entry-actividad" placeholder="entry.888999000"
+                            class="w-full px-3 py-2 text-xs font-mono bg-slate-50 border border-slate-300 rounded-xl">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">ID Fecha y Hora (Opcional)</label>
+                        <input type="text" id="gf-entry-fecha" placeholder="entry.111222333"
+                            class="w-full px-3 py-2 text-xs font-mono bg-slate-50 border border-slate-300 rounded-xl">
+                    </div>
+                </div>
+
+                <hr class="border-slate-200">
+
+                <!-- Lectura de Respuestas desde Google Sheets -->
+                <div class="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3.5 space-y-2">
+                    <label class="block text-xs font-bold text-emerald-900">
+                        URL de Google Sheets (Para jalar total de asistentes y gráfica al entrar con PIN)
+                    </label>
+                    <input type="text" id="gf-sheets-url" placeholder="https://docs.google.com/spreadsheets/d/TU_ID_DE_HOJA/edit..."
+                        class="w-full px-3 py-2 text-xs bg-white border border-emerald-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                    <p class="text-[11px] text-emerald-800 leading-relaxed">
+                        <strong>Importante:</strong> En tu Google Sheets haz clic en <strong>Compartir</strong> &rarr; <em>"Cualquier persona con el enlace (Lector)"</em>, copia el enlace de la barra de direcciones y pégalo aquí arriba.
+                    </p>
+                </div>
+
+                <!-- Botón de Diagnóstico Directo -->
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between gap-2">
+                    <p class="text-[11px] text-amber-900">
+                        <strong>¿No llegan las respuestas?</strong> Revisa en tu Google Form: Configuración &rarr; Respuestas &rarr; desactiva <em>"Limitar a 1 respuesta"</em> y <em>"Recopilar correos"</em>.
+                    </p>
+                    <button type="button" onclick="testGoogleFormsDirect()"
+                        class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-2 rounded-lg shrink-0 cursor-pointer">
+                        Probar Envío
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-slate-50 px-6 py-4 border-t border-slate-200 flex items-center justify-between">
+                <button type="button" onclick="disconnectGoogleForms()" class="text-xs font-semibold text-rose-600 hover:underline cursor-pointer">
+                    Desconectar
+                </button>
+                <div class="flex gap-2">
+                    <button type="button" onclick="closeConfigModal()" class="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-200 hover:bg-slate-300 rounded-xl cursor-pointer">
+                        Cancelar
+                    </button>
+                    <button type="button" onclick="saveGoogleFormsConfig()" class="px-4 py-2 text-xs font-bold text-white bg-[#1B396A] hover:bg-[#142b52] rounded-xl cursor-pointer">
+                        Guardar Conexión
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL DE CONFIRMACIÓN PARA LIMPIAR LISTA                              -->
+    <!-- ===================================================================== -->
+    <div id="clear-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 text-center animate-fade-in">
+            <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800">¿Eliminar registros locales?</h3>
+            <p class="text-sm text-slate-500 mt-2">
+                Se borrarán los registros guardados en este navegador (los ya enviados a Google Forms siguen seguros en tu Google Sheets).
+            </p>
+            <div class="grid grid-cols-2 gap-3 mt-6">
+                <button onclick="closeClearModal()" class="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl cursor-pointer">
+                    Cancelar
+                </button>
+                <button onclick="confirmClearAll()" class="py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm rounded-xl cursor-pointer">
+                    Sí, limpiar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- LÓGICA JAVASCRIPT                                                     -->
+    <!-- ===================================================================== -->
+    <script>
+        // =========================================================================
+        // PIN DE SEGURIDAD DEL ORGANIZADOR
+        // =========================================================================
+        const ADMIN_PIN = 'ISC2026-1915!';
+
+        // =========================================================================
+        // CONFIGURACIÓN FIJA DE GOOGLE FORMS (PERSONALIZABLE PARA ESTE SEMINARIO)
+        // =========================================================================
+        const DEFAULT_GFORMS_CONFIG = {
+            enabled: true,
+            actionUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSfXoDDDiKHSKd-NI5XbaP_-TzeQZ9y1uuhOi4t60lMo6S5quQ/formResponse',
+            entryControl: 'entry.314032203',
+            entryNombres: 'entry.833164392',
+            entryApellidos: 'entry.356799926',
+            entryGenero: 'entry.1921877302',
+            entrySemestre: 'entry.507656850',
+            entryActividad: 'entry.350995349',
+            entryFecha: 'entry.1653820559',
+            sheetsUrl: 'https://docs.google.com/spreadsheets/d/1qfvYCHszjogcqGvkjH4ZXSp9Ig-CvIpbWbwtFkMsfMs/edit?usp=sharing'
+        };
+
+        const CONFERENCIA_UNICA = 'Caracterización Metalúrgica y microestructural de camisas de protección construidas en Acero AISI 304.';
+
+        // Claves independientes de almacenamiento local para este Seminario
+        const STORAGE_RECORDS_KEY = 'itsncg_seminario_cti_registros_v1';
+        const STORAGE_GFORMS_KEY = 'itsncg_seminario_cti_gforms_v1';
+
+        // Estado de la aplicación
+        let registros = [];
+        let genderChart = null;
+        let isAdminUnlocked = false;
+        let gfConfig = { ...DEFAULT_GFORMS_CONFIG };
+
+        // ==========================================
+        // 0. CONTROL DE ACCESO ORGANIZADOR (PIN)
+        // ==========================================
+        function toggleAdminAccess() {
+            if (isAdminUnlocked) {
+                isAdminUnlocked = false;
+                updateAdminUI();
+                showToast('Sesión de organizador bloqueada.', 'info');
+            } else {
+                document.getElementById('admin-pin-input').value = '';
+                document.getElementById('admin-pin-modal').classList.remove('hidden');
+                document.getElementById('admin-pin-modal').classList.add('flex');
+                setTimeout(() => document.getElementById('admin-pin-input').focus(), 100);
+            }
+        }
+
+        function closePinModal() {
+            document.getElementById('admin-pin-modal').classList.add('hidden');
+            document.getElementById('admin-pin-modal').classList.remove('flex');
+        }
+
+        document.getElementById('pin-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const enteredPin = document.getElementById('admin-pin-input').value.trim();
+            if (enteredPin === ADMIN_PIN) {
+                isAdminUnlocked = true;
+                closePinModal();
+                updateAdminUI();
+                showToast('Modo Organizador desbloqueado.', 'success');
+                if (gfConfig.sheetsUrl) {
+                    await syncFromGoogleSheets(true);
+                }
+            } else {
+                showToast('PIN incorrecto. Acceso denegado.', 'error');
+                document.getElementById('admin-pin-input').value = '';
+                document.getElementById('admin-pin-input').focus();
+            }
+        });
+
+        function updateAdminUI() {
+            const kpiSection = document.getElementById('admin-kpi-section');
+            const chartSection = document.getElementById('admin-chart-section');
+            const formContainer = document.getElementById('form-card-container');
+            const bitacoraSection = document.getElementById('admin-bitacora-section');
+            const btnGformsConfig = document.getElementById('btn-gforms-config');
+            const adminBtnText = document.getElementById('admin-btn-text');
+            const adminBtn = document.getElementById('btn-admin-toggle');
+
+            if (isAdminUnlocked) {
+                kpiSection.classList.remove('hidden');
+                chartSection.classList.remove('hidden');
+                chartSection.classList.add('flex');
+                formContainer.classList.remove('lg:col-span-8', 'lg:col-start-3');
+                formContainer.classList.add('lg:col-span-7');
+                bitacoraSection.classList.remove('hidden');
+                btnGformsConfig.classList.remove('hidden');
+                btnGformsConfig.classList.add('flex');
+                adminBtnText.textContent = 'Bloquear Vista';
+                adminBtn.classList.remove('bg-white/10');
+                adminBtn.classList.add('bg-amber-500/25', 'border-amber-400/50');
+                if (genderChart) {
+                    setTimeout(() => genderChart.resize(), 50);
+                }
+                renderTable();
+            } else {
+                kpiSection.classList.add('hidden');
+                chartSection.classList.add('hidden');
+                chartSection.classList.remove('flex');
+                formContainer.classList.remove('lg:col-span-7');
+                formContainer.classList.add('lg:col-span-8', 'lg:col-start-3');
+                bitacoraSection.classList.add('hidden');
+                btnGformsConfig.classList.add('hidden');
+                btnGformsConfig.classList.remove('flex');
+                adminBtnText.textContent = 'Organizador';
+                adminBtn.classList.add('bg-white/10');
+                adminBtn.classList.remove('bg-amber-500/25', 'border-amber-400/50');
+            }
+        }
+
+        // ==========================================
+        // 1. INICIALIZACIÓN AL CARGAR LA PÁGINA
+        // ==========================================
+        function initApp() {
+            lucide.createIcons();
+
+            try {
+                const savedRecords = localStorage.getItem(STORAGE_RECORDS_KEY);
+                if (savedRecords) {
+                    registros = JSON.parse(savedRecords);
+                }
+            } catch (e) {
+                console.error('Error leyendo registros locales:', e);
+            }
+
+            try {
+                const savedGf = localStorage.getItem(STORAGE_GFORMS_KEY);
+                if (savedGf) {
+                    const parsed = JSON.parse(savedGf);
+                    if (parsed && parsed.actionUrl) {
+                        gfConfig = { ...gfConfig, ...parsed };
+                    }
+                }
+            } catch (e) {
+                console.error('Error leyendo config de Google Forms:', e);
+            }
+
+            updateGFormsBadge();
+            populateConfigInputs();
+            initChart();
+            updateDashboard();
+            updateAdminUI();
+            updateLiveClock();
+            setInterval(updateLiveClock, 1000);
+        }
+
+        function persistRecords() {
+            try {
+                localStorage.setItem(STORAGE_RECORDS_KEY, JSON.stringify(registros));
+            } catch (e) {
+                console.error('Error guardando en localStorage:', e);
+            }
+        }
+
+        // ==========================================
+        // 2. RELOJ Y FECHA AUTOMÁTICA EN TIEMPO REAL
+        // ==========================================
+        function updateLiveClock() {
+            const now = new Date();
+            const optionsDate = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('live-date').textContent = now.toLocaleDateString('es-MX', optionsDate);
+            
+            const timeStr = now.toLocaleTimeString('es-MX', { hour12: false });
+            document.getElementById('live-clock').textContent = timeStr;
+
+            const dateCompact = now.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            document.getElementById('form-timestamp-preview').textContent = `${dateCompact} ${timeStr}`;
+        }
+
+        // ==========================================
+        // 3. INICIALIZACIÓN DE GRÁFICA DE PASTEL
+        // ==========================================
+        function initChart() {
+            const ctx = document.getElementById('genderChart').getContext('2d');
+            genderChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Hombres', 'Mujeres'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ['#0284c7', '#f43f5e'],
+                        borderColor: '#ffffff',
+                        borderWidth: 3,
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1e293b',
+                            padding: 12,
+                            cornerRadius: 10,
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const value = context.raw;
+                                    const pct = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                    return ` ${context.label}: ${value} (${pct}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ==========================================
+        // 3.5 LECTURA EN VIVO DESDE GOOGLE SHEETS (JSONP SIN BLOQUEO CORS)
+        // ==========================================
+        function extractSpreadsheetId(url) {
+            if (!url) return null;
+            const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+            return match ? match[1] : null;
+        }
+
+        function syncFromGoogleSheets(notify = false) {
+            return new Promise((resolve) => {
+                const sheetId = extractSpreadsheetId(gfConfig.sheetsUrl);
+                if (!sheetId) {
+                    if (notify) {
+                        showToast('Configura primero el enlace de tu Google Sheets en el botón "Google Forms".', 'warning');
+                    }
+                    resolve(false);
+                    return;
+                }
+
+                const btnSync = document.getElementById('btn-sync-sheets');
+                if (btnSync) {
+                    btnSync.disabled = true;
+                    btnSync.classList.add('opacity-70');
+                }
+
+                const callbackName = 'gvizCallback_' + Date.now();
+                const script = document.createElement('script');
+                let timeoutId = null;
+
+                const cleanup = () => {
+                    if (timeoutId) clearTimeout(timeoutId);
+                    delete window[callbackName];
+                    if (script.parentNode) script.parentNode.removeChild(script);
+                    if (btnSync) {
+                        btnSync.disabled = false;
+                        btnSync.classList.remove('opacity-70');
+                    }
+                };
+
+                window[callbackName] = function(data) {
+                    try {
+                        if (!data || data.status === 'error') {
+                            throw new Error('Acceso denegado o error en la hoja');
+                        }
+
+                        const cols = data.table?.cols || [];
+                        const rows = data.table?.rows || [];
+
+                        const findColIndex = (keywords, fallbackIdx) => {
+                            const found = cols.findIndex(c => {
+                                const label = (c.label || '').toLowerCase();
+                                return keywords.some(k => label.includes(k));
+                            });
+                            return found !== -1 ? found : fallbackIdx;
+                        };
+
+                        const idxMarca = findColIndex(['marca', 'timestamp'], 0);
+                        const idxControl = findColIndex(['control'], 1);
+                        const idxNombres = findColIndex(['nombre'], 2);
+                        const idxApellidos = findColIndex(['apellido'], 3);
+                        const idxGenero = findColIndex(['género', 'genero', 'sexo'], 4);
+                        const idxSemestre = findColIndex(['semestre'], 5);
+                        const idxConferencia = findColIndex(['conferencia', 'evento', 'actividad'], 6);
+                        const idxFecha = findColIndex(['fecha'], 7);
+
+                        const registrosNube = rows.map((row, idx) => {
+                            const cells = row.c || [];
+                            const getVal = (i) => (i >= 0 && cells[i] && cells[i].v !== null && cells[i].v !== undefined) ? String(cells[i].v).trim() : '';
+                            const getFormatted = (i) => (i >= 0 && cells[i] && cells[i].f) ? String(cells[i].f).trim() : getVal(i);
+
+                            const marcaTemporal = getFormatted(idxMarca);
+                            const numControl = getVal(idxControl).toUpperCase();
+                            const nombres = getVal(idxNombres);
+                            const apellidos = getVal(idxApellidos);
+                            const generoRaw = getVal(idxGenero);
+                            const semestre = getVal(idxSemestre);
+                            const actividad = getVal(idxConferencia) || CONFERENCIA_UNICA;
+                            const fechaPersonalizada = getFormatted(idxFecha);
+
+                            const genero = generoRaw.toLowerCase().includes('mujer') ? 'Mujer' : 'Hombre';
+
+                            return {
+                                docId: `gs_${idx}_${numControl}`,
+                                timestamp: idx,
+                                numControl,
+                                nombres,
+                                apellidos,
+                                genero,
+                                semestre,
+                                actividad,
+                                fechaHora: fechaPersonalizada || marcaTemporal || '-',
+                                enviadoGForms: true
+                            };
+                        }).filter(r => r.numControl && !r.numControl.toLowerCase().includes('control'));
+
+                        registros = registrosNube.reverse();
+                        persistRecords();
+                        updateDashboard();
+
+                        const subtitle = document.getElementById('bitacora-subtitle');
+                        if (subtitle) {
+                            subtitle.textContent = `Sincronizado con Google Sheets (${registros.length} registros totales)`;
+                        }
+
+                        if (notify) {
+                            showToast(`¡Sincronizado! ${registros.length} registros cargados desde Google Sheets.`, 'success');
+                        }
+                        cleanup();
+                        resolve(true);
+                    } catch (err) {
+                        console.error('Error procesando datos de Google Sheets:', err);
+                        if (notify) {
+                            showToast('No se pudo leer Google Sheets. Verifica que esté compartido como "Cualquier persona con el enlace (Lector)".', 'error');
+                        }
+                        cleanup();
+                        resolve(false);
+                    }
+                };
+
+                script.onerror = function() {
+                    if (notify) {
+                        showToast('Error de conexión con Google Sheets. Verifica los permisos de compartir.', 'error');
+                    }
+                    cleanup();
+                    resolve(false);
+                };
+
+                timeoutId = setTimeout(() => {
+                    if (notify) {
+                        showToast('Tiempo de espera agotado al leer Google Sheets. Revisa que esté compartido como público (Lector).', 'warning');
+                    }
+                    cleanup();
+                    resolve(false);
+                }, 8000);
+
+                script.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json;responseHandler:${callbackName}`;
+                document.body.appendChild(script);
+            });
+        }
+
+        // ==========================================
+        // 4. MANEJO DEL FORMULARIO DE REGISTRO
+        // ==========================================
+        document.getElementById('registro-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const btnSubmit = document.getElementById('btn-submit');
+            const numControl = document.getElementById('numControl').value.trim().toUpperCase();
+            const semestre = document.getElementById('semestre').value;
+            const nombres = document.getElementById('nombres').value.trim();
+            const apellidos = document.getElementById('apellidos').value.trim();
+            const actividad = document.getElementById('actividad').value.trim() || CONFERENCIA_UNICA;
+            const generoEl = document.querySelector('input[name="genero"]:checked');
+
+            if (!generoEl) {
+                showToast('Por favor selecciona un género.', 'error');
+                return;
+            }
+
+            const duplicadoEnEvento = registros.some(r => 
+                r.numControl === numControl && r.actividad.toLowerCase() === actividad.toLowerCase()
+            );
+            if (duplicadoEnEvento) {
+                showToast(`El alumno ${numControl} ya fue registrado en esta conferencia.`, 'warning');
+                return;
+            }
+
+            btnSubmit.disabled = true;
+            btnSubmit.classList.add('opacity-75');
+
+            const now = new Date();
+            const fechaStr = now.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const horaStr = now.toLocaleTimeString('es-MX', { hour12: false });
+            const fechaHoraCompleta = `${fechaStr} ${horaStr}`;
+            const timestamp = now.getTime();
+            const docId = `${numControl}_${timestamp}`;
+
+            const nuevoRegistro = {
+                docId,
+                timestamp,
+                numControl,
+                semestre,
+                nombres,
+                apellidos,
+                actividad,
+                genero: generoEl.value,
+                fechaHora: fechaHoraCompleta,
+                enviadoGForms: false
+            };
+
+            if (gfConfig.enabled && gfConfig.actionUrl) {
+                nuevoRegistro.enviadoGForms = await sendToGoogleForms(nuevoRegistro);
+            }
+
+            registros.unshift(nuevoRegistro);
+            persistRecords();
+            updateDashboard();
+
+            this.reset();
+            document.getElementById('actividad').value = CONFERENCIA_UNICA;
+            document.getElementById('numControl').focus();
+
+            btnSubmit.disabled = false;
+            btnSubmit.classList.remove('opacity-75');
+
+            if (gfConfig.enabled) {
+                showToast(`¡Asistencia de ${nombres} registrada exitosamente!`, 'success');
+            } else {
+                showToast(`¡Asistencia de ${nombres} guardada!`, 'success');
+            }
+        });
+
+        // ==========================================
+        // 5. ENVÍO SILENCIOSO A GOOGLE FORMS (IFRAME NATIVO)
+        // ==========================================
+        function sendToGoogleForms(registro) {
+            return new Promise((resolve) => {
+                try {
+                    const iframeName = 'gf_hidden_iframe_' + Date.now();
+                    const iframe = document.createElement('iframe');
+                    iframe.name = iframeName;
+                    iframe.style.display = 'none';
+                    document.body.appendChild(iframe);
+
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = gfConfig.actionUrl;
+                    form.target = iframeName;
+                    form.style.display = 'none';
+
+                    const fields = [
+                        { name: gfConfig.entryControl, value: registro.numControl },
+                        { name: gfConfig.entryNombres, value: registro.nombres },
+                        { name: gfConfig.entryApellidos, value: registro.apellidos },
+                        { name: gfConfig.entryGenero, value: registro.genero },
+                        { name: gfConfig.entrySemestre, value: registro.semestre },
+                        { name: gfConfig.entryActividad, value: registro.actividad },
+                        { name: gfConfig.entryFecha, value: registro.fechaHora }
+                    ];
+
+                    fields.forEach(f => {
+                        if (f.name) {
+                            const input = document.createElement('input');
+                            input.type = 'hidden';
+                            input.name = f.name;
+                            input.value = f.value;
+                            form.appendChild(input);
+                        }
+                    });
+
+                    document.body.appendChild(form);
+                    form.submit();
+
+                    setTimeout(() => {
+                        form.remove();
+                        iframe.remove();
+                        resolve(true);
+                    }, 1200);
+                } catch (error) {
+                    console.error('Error al enviar a Google Forms:', error);
+                    resolve(false);
+                }
+            });
+        }
+
+        function testGoogleFormsDirect() {
+            const actionUrl = document.getElementById('gf-action-url').value.trim();
+            if (!actionUrl) {
+                showToast('Primero ingresa la URL de Google Forms.', 'warning');
+                return;
+            }
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = actionUrl;
+            form.target = '_blank';
+            form.style.display = 'none';
+
+            const testFields = [
+                { name: document.getElementById('gf-entry-control').value.trim(), value: '26CG0000' },
+                { name: document.getElementById('gf-entry-nombres').value.trim(), value: 'Alumno Prueba' },
+                { name: document.getElementById('gf-entry-apellidos').value.trim(), value: 'Seminario CTI' },
+                { name: document.getElementById('gf-entry-genero').value.trim(), value: 'Hombre' },
+                { name: document.getElementById('gf-entry-semestre').value.trim(), value: '7mo' },
+                { name: document.getElementById('gf-entry-actividad').value.trim(), value: CONFERENCIA_UNICA },
+                { name: document.getElementById('gf-entry-fecha').value.trim(), value: new Date().toLocaleString('es-MX') }
+            ];
+
+            testFields.forEach(f => {
+                if (f.name) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = f.name;
+                    input.value = f.value;
+                    form.appendChild(input);
+                }
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+            form.remove();
+        }
+
+        // ==========================================
+        // 6. ACTUALIZACIÓN DE KPIs, GRÁFICA Y TABLA
+        // ==========================================
+        function updateDashboard() {
+            const total = registros.length;
+            const hombres = registros.filter(r => r.genero === 'Hombre').length;
+            const mujeres = registros.filter(r => r.genero === 'Mujer').length;
+
+            const pctHombres = total > 0 ? ((hombres / total) * 100).toFixed(1) : 0;
+            const pctMujeres = total > 0 ? ((mujeres / total) * 100).toFixed(1) : 0;
+
+            document.getElementById('kpi-total').textContent = total;
+            document.getElementById('kpi-hombres').textContent = hombres;
+            document.getElementById('kpi-hombres-pct').textContent = `${pctHombres}%`;
+            document.getElementById('kpi-mujeres').textContent = mujeres;
+            document.getElementById('kpi-mujeres-pct').textContent = `${pctMujeres}%`;
+
+            document.getElementById('legend-hombres').textContent = `${pctHombres}% (${hombres})`;
+            document.getElementById('legend-mujeres').textContent = `${pctMujeres}% (${mujeres})`;
+
+            const overlay = document.getElementById('empty-chart-overlay');
+            if (total === 0) {
+                overlay.classList.remove('hidden');
+            } else {
+                overlay.classList.add('hidden');
+            }
+
+            if (genderChart) {
+                genderChart.data.datasets[0].data = [hombres, mujeres];
+                genderChart.update();
+            }
+
+            renderTable();
+        }
+
+        function renderTable() {
+            if (!isAdminUnlocked) return;
+
+            const tbody = document.getElementById('registros-tbody');
+            const emptyState = document.getElementById('empty-table-state');
+            const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+
+            const filtrados = registros.filter(r => {
+                return r.numControl.toLowerCase().includes(searchTerm) ||
+                       r.nombres.toLowerCase().includes(searchTerm) ||
+                       r.apellidos.toLowerCase().includes(searchTerm) ||
+                       (r.semestre && r.semestre.toLowerCase().includes(searchTerm));
+            });
+
+            tbody.innerHTML = '';
+
+            if (filtrados.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            filtrados.forEach((reg, index) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/80 transition-colors animate-fade-in';
+                
+                const badgeGenero = reg.genero === 'Hombre'
+                    ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-100 text-sky-800">Hombre</span>`
+                    : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800">Mujer</span>`;
+
+                const badgeEstado = reg.enviadoGForms
+                    ? `<span title="Enviado a Google Forms" class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200"><i data-lucide="check-check" class="w-3.5 h-3.5"></i> G-Forms</span>`
+                    : `<span title="Guardado localmente" class="inline-flex items-center gap-1 text-xs font-medium text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200"><i data-lucide="hard-drive" class="w-3.5 h-3.5"></i> Local</span>`;
+
+                tr.innerHTML = `
+                    <td class="py-3.5 px-4 font-mono text-xs text-slate-400">${filtrados.length - index}</td>
+                    <td class="py-3.5 px-4 font-mono font-bold text-[#1B396A]">${reg.numControl}</td>
+                    <td class="py-3.5 px-4 font-medium text-slate-800">${reg.nombres} ${reg.apellidos}</td>
+                    <td class="py-3.5 px-4 text-xs font-semibold text-slate-600">${reg.semestre || '-'}</td>
+                    <td class="py-3.5 px-4 text-xs font-medium text-slate-700 max-w-[240px] truncate" title="${reg.actividad || CONFERENCIA_UNICA}">${reg.actividad || CONFERENCIA_UNICA}</td>
+                    <td class="py-3.5 px-4">${badgeGenero}</td>
+                    <td class="py-3.5 px-4 font-mono text-xs text-slate-600 whitespace-nowrap">${reg.fechaHora}</td>
+                    <td class="py-3.5 px-4 text-center">${badgeEstado}</td>
+                    <td class="py-3.5 px-4 text-right">
+                        <button onclick="deleteRegistro('${reg.docId}')" title="Eliminar registro"
+                            class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            lucide.createIcons();
+        }
+
+        function deleteRegistro(docId) {
+            registros = registros.filter(r => r.docId !== docId);
+            persistRecords();
+            updateDashboard();
+            showToast('Registro eliminado de la lista local.', 'info');
+        }
+
+        // ==========================================
+        // 7. EXPORTACIÓN A EXCEL (.XLSX)
+        // ==========================================
+        function exportToExcel() {
+            if (!isAdminUnlocked) return;
+            if (registros.length === 0) {
+                showToast('No hay registros para exportar a Excel.', 'warning');
+                return;
+            }
+
+            const datosExcel = [...registros].reverse().map((r, idx) => ({
+                'No.': idx + 1,
+                'Número de Control': r.numControl,
+                'Nombre(s)': r.nombres,
+                'Apellidos': r.apellidos,
+                'Semestre': r.semestre || 'N/A',
+                'Conferencia': r.actividad || CONFERENCIA_UNICA,
+                'Género': r.genero,
+                'Fecha y Hora de Registro': r.fechaHora,
+                'Sincronizado Google Forms': r.enviadoGForms ? 'Sí' : 'No'
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(datosExcel);
+            worksheet['!cols'] = [
+                { wch: 6 },
+                { wch: 16 },
+                { wch: 20 },
+                { wch: 20 },
+                { wch: 15 },
+                { wch: 52 },
+                { wch: 12 },
+                { wch: 22 },
+                { wch: 22 }
+            ];
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Asistencia Seminario CTI');
+
+            const fechaArchivo = new Date().toISOString().slice(0, 10);
+            XLSX.writeFile(workbook, `Asistencia_Seminario_CTI_ITSNCG_${fechaArchivo}.xlsx`);
+            showToast('Archivo Excel descargado exitosamente.', 'success');
+        }
+
+        // ==========================================
+        // 8. EXPORTACIÓN A DOCUMENTO PDF OFICIAL
+        // ==========================================
+        function exportToPDF() {
+            if (!isAdminUnlocked) return;
+            if (registros.length === 0) {
+                showToast('No hay registros para generar el PDF.', 'warning');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'landscape' });
+
+            doc.setFillColor(27, 57, 106);
+            doc.rect(0, 0, 297, 30, 'F');
+
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('INSTITUTO TECNOLÓGICO SUPERIOR DE NUEVO CASAS GRANDES', 148.5, 12, { align: 'center' });
+            
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Seminario Internacional de Ciencia, Tecnología e Innovación • Lista Oficial de Asistencia', 148.5, 20, { align: 'center' });
+
+            const total = registros.length;
+            const hombres = registros.filter(r => r.genero === 'Hombre').length;
+            const mujeres = registros.filter(r => r.genero === 'Mujer').length;
+            const pctH = ((hombres / total) * 100).toFixed(1);
+            const pctM = ((mujeres / total) * 100).toFixed(1);
+
+            doc.setTextColor(40, 40, 40);
+            doc.setFontSize(9.5);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`Total Registrados: ${total}   |   Hombres: ${hombres} (${pctH}%)   |   Mujeres: ${mujeres} (${pctM}%)`, 14, 40);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Fecha de emisión: ${new Date().toLocaleString('es-MX')}`, 283, 40, { align: 'right' });
+
+            const filas = [...registros].reverse().map((r, idx) => [
+                idx + 1,
+                r.numControl,
+                `${r.nombres} ${r.apellidos}`,
+                r.semestre || '-',
+                r.actividad || CONFERENCIA_UNICA,
+                r.genero,
+                r.fechaHora
+            ]);
+
+            doc.autoTable({
+                startY: 46,
+                head: [['#', 'No. Control', 'Nombre Completo', 'Semestre', 'Conferencia', 'Género', 'Fecha y Hora']],
+                body: filas,
+                theme: 'grid',
+                headStyles: {
+                    fillColor: [27, 57, 106],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold',
+                    fontSize: 9
+                },
+                bodyStyles: {
+                    fontSize: 8.5,
+                    textColor: [50, 50, 50]
+                },
+                alternateRowStyles: {
+                    fillColor: [245, 248, 252]
+                },
+                columnStyles: {
+                    0: { cellWidth: 10, halign: 'center' },
+                    1: { cellWidth: 28, fontStyle: 'bold' },
+                    3: { cellWidth: 24 },
+                    5: { cellWidth: 22, halign: 'center' },
+                    6: { cellWidth: 36 }
+                }
+            });
+
+            const fechaArchivo = new Date().toISOString().slice(0, 10);
+            doc.save(`Reporte_Seminario_CTI_ITSNCG_${fechaArchivo}.pdf`);
+            showToast('Documento PDF generado correctamente.', 'success');
+        }
+
+        // ==========================================
+        // 9. CONFIGURACIÓN DE GOOGLE FORMS (MODAL)
+        // ==========================================
+        function openConfigModal() {
+            if (!isAdminUnlocked) return;
+            populateConfigInputs();
+            document.getElementById('config-modal').classList.remove('hidden');
+            document.getElementById('config-modal').classList.add('flex');
+        }
+
+        function closeConfigModal() {
+            document.getElementById('config-modal').classList.add('hidden');
+            document.getElementById('config-modal').classList.remove('flex');
+        }
+
+        function populateConfigInputs() {
+            document.getElementById('gf-action-url').value = gfConfig.actionUrl || '';
+            document.getElementById('gf-entry-control').value = gfConfig.entryControl || '';
+            document.getElementById('gf-entry-nombres').value = gfConfig.entryNombres || '';
+            document.getElementById('gf-entry-apellidos').value = gfConfig.entryApellidos || '';
+            document.getElementById('gf-entry-genero').value = gfConfig.entryGenero || '';
+            document.getElementById('gf-entry-semestre').value = gfConfig.entrySemestre || '';
+            document.getElementById('gf-entry-actividad').value = gfConfig.entryActividad || '';
+            document.getElementById('gf-entry-fecha').value = gfConfig.entryFecha || '';
+            document.getElementById('gf-sheets-url').value = gfConfig.sheetsUrl || '';
+        }
+
+        function updateGFormsBadge() {
+            const badge = document.getElementById('gforms-badge');
+            if (gfConfig.enabled && gfConfig.actionUrl) {
+                badge.className = 'text-xs font-medium px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 flex items-center gap-1';
+                badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Google Forms: Conectado';
+            } else {
+                badge.className = 'text-xs font-medium px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-200 border border-amber-400/30 flex items-center gap-1';
+                badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Google Forms: Opcional';
+            }
+        }
+
+        function parsePrefilledUrl() {
+            const rawUrl = document.getElementById('prefilled-url-input').value.trim();
+            if (!rawUrl) {
+                showToast('Pega primero el enlace prellenado de Google Forms.', 'warning');
+                return;
+            }
+
+            try {
+                const urlObj = new URL(rawUrl);
+                const actionUrl = `${urlObj.origin}${urlObj.pathname.replace(/\/viewform.*/, '/formResponse')}`;
+                document.getElementById('gf-action-url').value = actionUrl;
+
+                const entries = [];
+                urlObj.searchParams.forEach((value, key) => {
+                    if (key.startsWith('entry.')) {
+                        entries.push(key);
+                    }
+                });
+
+                if (entries.length >= 4) {
+                    document.getElementById('gf-entry-control').value = entries[0] || '';
+                    document.getElementById('gf-entry-nombres').value = entries[1] || '';
+                    document.getElementById('gf-entry-apellidos').value = entries[2] || '';
+                    document.getElementById('gf-entry-genero').value = entries[3] || '';
+                    document.getElementById('gf-entry-semestre').value = entries[4] || '';
+                    document.getElementById('gf-entry-actividad').value = entries[5] || '';
+                    document.getElementById('gf-entry-fecha').value = entries[6] || '';
+                    showToast(`¡Se extrajeron ${entries.length} campos automáticamente!`, 'success');
+                } else {
+                    showToast('URL extraída, pero verifica manualmente los campos entry.', 'warning');
+                }
+            } catch (err) {
+                showToast('El enlace ingresado no es una URL válida.', 'error');
+            }
+        }
+
+        function saveGoogleFormsConfig() {
+            const actionUrl = document.getElementById('gf-action-url').value.trim();
+            const entryControl = document.getElementById('gf-entry-control').value.trim();
+            const entryNombres = document.getElementById('gf-entry-nombres').value.trim();
+            const entryApellidos = document.getElementById('gf-entry-apellidos').value.trim();
+            const entryGenero = document.getElementById('gf-entry-genero').value.trim();
+            const entrySemestre = document.getElementById('gf-entry-semestre').value.trim();
+            const entryActividad = document.getElementById('gf-entry-actividad').value.trim();
+            const entryFecha = document.getElementById('gf-entry-fecha').value.trim();
+            const sheetsUrl = document.getElementById('gf-sheets-url').value.trim();
+
+            if (!actionUrl || !entryControl || !entryNombres || !entryApellidos || !entryGenero) {
+                showToast('Completa la URL y los campos principales.', 'error');
+                return;
+            }
+
+            gfConfig = {
+                enabled: true,
+                actionUrl,
+                entryControl,
+                entryNombres,
+                entryApellidos,
+                entryGenero,
+                entrySemestre,
+                entryActividad,
+                entryFecha,
+                sheetsUrl
+            };
+
+            try {
+                localStorage.setItem(STORAGE_GFORMS_KEY, JSON.stringify(gfConfig));
+            } catch (e) {
+                console.error(e);
+            }
+
+            updateGFormsBadge();
+            closeConfigModal();
+            showToast('¡Conexión con Google Forms guardada y activa!', 'success');
+            if (sheetsUrl) {
+                syncFromGoogleSheets(true);
+            }
+        }
+
+        function disconnectGoogleForms() {
+            gfConfig.enabled = false;
+            try {
+                localStorage.setItem(STORAGE_GFORMS_KEY, JSON.stringify(gfConfig));
+            } catch (e) {
+                console.error(e);
+            }
+            updateGFormsBadge();
+            closeConfigModal();
+            showToast('Google Forms desconectado.', 'info');
+        }
+
+        // ==========================================
+        // 10. MODAL LIMPIAR Y SISTEMA DE NOTIFICACIONES
+        // ==========================================
+        function openClearModal() {
+            if (!isAdminUnlocked || registros.length === 0) return;
+            document.getElementById('clear-modal').classList.remove('hidden');
+            document.getElementById('clear-modal').classList.add('flex');
+        }
+
+        function closeClearModal() {
+            document.getElementById('clear-modal').classList.add('hidden');
+            document.getElementById('clear-modal').classList.remove('flex');
+        }
+
+        function confirmClearAll() {
+            closeClearModal();
+            registros = [];
+            persistRecords();
+            updateDashboard();
+            showToast('Lista local limpiada.', 'info');
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const colors = {
+                success: 'bg-emerald-600 text-white border-emerald-500',
+                error: 'bg-rose-600 text-white border-rose-500',
+                warning: 'bg-amber-500 text-white border-amber-400',
+                info: 'bg-slate-800 text-white border-slate-700'
+            };
+
+            const icons = {
+                success: 'check-circle',
+                error: 'x-circle',
+                warning: 'alert-circle',
+                info: 'info'
+            };
+
+            toast.className = `${colors[type]} border px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 text-sm font-medium animate-fade-in pointer-events-auto max-w-sm`;
+            toast.innerHTML = `
+                <i data-lucide="${icons[type]}" class="w-5 h-5 shrink-0"></i>
+                <span>${message}</span>
+            `;
+
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-10px)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
